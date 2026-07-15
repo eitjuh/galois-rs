@@ -1,0 +1,19 @@
+[package]
+name = "galois"
+version = "0.1.0"
+edition = "2021"
+description = "A performant Rust library for Galois fields GF(p^m), a Rust equivalent of Python galois"
+license = "MIT"
+repository = "https://github.com/eitjuh/galois-rs"
+keywords = ["galois", "finite-field", "gf", "polynomial", "cryptography", "ntt", "lfsr"]
+categories = ["mathematics", "science"]
+
+[dependencies]
+thiserror = "2"
+num-bigint = "0.4"
+num-traits = "0.2"
+ndarray = "0.16"
+rusqlite = { version = "0.32", features = ["bundled"] }
+once_cell = "1"
+
+[dev-dependencies]
