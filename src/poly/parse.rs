@@ -26,6 +26,12 @@ pub fn parse_field_poly(s: &str, field: &crate::field::FieldKind) -> Result<crat
     }
 }
 
+/// Parse a polynomial string over a `BigGaloisField`.
+pub fn parse_big_poly(s: &str, field: crate::field::BigGaloisField) -> Result<crate::poly::BigPoly> {
+    let coeffs = parse_coeffs_asc(s, field.characteristic())?;
+    crate::poly::BigPoly::from_u64_asc(coeffs, field)
+}
+
 fn parse_coeffs_asc(s: &str, characteristic: u64) -> Result<Vec<u64>> {
     let s = s.replace(' ', "");
     if s.is_empty() || s == "0" {
@@ -105,6 +111,13 @@ impl Poly {
     }
 }
 
+impl crate::poly::BigPoly {
+    /// Parse from string over a `BigGaloisField`.
+    pub fn from_str(s: &str, field: crate::field::BigGaloisField) -> Result<Self> {
+        parse_big_poly(s, field)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,5 +135,12 @@ mod tests {
         let fk = crate::field::FieldKind::Big(crate::field::BigGaloisField::new(2, 2).unwrap());
         let p = parse_field_poly("x^2 + x + 1", &fk).unwrap();
         assert_eq!(p.degree(), 2);
+    }
+
+    #[test]
+    fn parse_big_poly_gf2_2() {
+        let field = crate::field::BigGaloisField::new(2, 2).unwrap();
+        let p = parse_big_poly("x^2 + x + 1", field).unwrap();
+        assert_eq!(p.format_poly("x"), "x^2 + x + 1");
     }
 }

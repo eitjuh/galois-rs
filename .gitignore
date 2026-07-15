@@ -1,2 +1,17 @@
-/target
+# Rust build output
+/target/
+**/*.rs.bk
+
+# Library crate: do not commit lockfile (apps/binaries should commit it)
 /Cargo.lock
+
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# NOTE: data/*.db is intentionally tracked — the library opens them at runtime.

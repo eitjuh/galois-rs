@@ -26,7 +26,7 @@ pub use poly_kind::{
     field_poly_factors, field_poly_roots, lagrange_poly_array, poly_from_roots_kind,
     poly_from_roots_values, FieldPoly,
 };
-pub use parse::{parse_field_poly, parse_poly};
+pub use parse::{parse_big_poly, parse_field_poly, parse_poly};
 pub use primitive::{is_primitive, primitive_poly};
 pub use factor::{
     distinct_degree_factorization, equal_degree_factorization, factors as poly_factors,

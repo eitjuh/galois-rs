@@ -8,7 +8,10 @@ use crate::error::{GaloisError, Result};
 use crate::field::{BigGaloisField, FieldKind, GaloisArray};
 use crate::poly::FieldPoly;
 
-use super::{characteristic_polynomial, lu_decomposition as small_lu, FieldMatrix, FieldVector};
+use super::{
+    characteristic_polynomial, lu_decomposition as small_lu, rank_revealing_lu as small_rank_lu,
+    FieldMatrix, FieldVector,
+};
 
 /// Matrix over a `BigGaloisField`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -554,6 +557,73 @@ impl BigFieldMatrix {
         Ok((l, u, pivots))
     }
 
+    /// LU decomposition for rank-deficient matrices.
+    pub fn rank_revealing_lu_decomposition(
+        &self,
+    ) -> Result<(Self, Self, Vec<usize>, usize)> {
+        let n = self.shape().0;
+        if n != self.shape().1 {
+            return Err(GaloisError::ShapeMismatch {
+                expected: vec![n, n],
+                actual: vec![self.shape().0, self.shape().1],
+            });
+        }
+        let field = self.field.clone();
+        let mut a = self.data.clone();
+        let mut pivots: Vec<usize> = (0..n).collect();
+        let mut rank = 0usize;
+
+        for k in 0..n {
+            let mut max_row = k;
+            for i in (k + 1)..n {
+                if !a[[i, k]].is_zero() {
+                    max_row = i;
+                }
+            }
+            if a[[max_row, k]].is_zero() {
+                continue;
+            }
+            if max_row != k {
+                pivots.swap(k, max_row);
+                for j in 0..n {
+                    let tmp = a[[k, j]].clone();
+                    a[[k, j]] = a[[max_row, j]].clone();
+                    a[[max_row, j]] = tmp;
+                }
+            }
+
+            let pivot = a[[k, k]].clone();
+            let inv_pivot = field.div(&BigUint::one(), &pivot)?;
+            rank += 1;
+            for i in (k + 1)..n {
+                let factor = field.mul(&a[[i, k]], &inv_pivot);
+                a[[i, k]] = factor.clone();
+                for j in (k + 1)..n {
+                    a[[i, j]] = field.sub(&a[[i, j]], &field.mul(&factor, &a[[k, j]]));
+                }
+            }
+        }
+
+        let mut l_data = vec![BigUint::zero(); n * n];
+        let mut u_data = vec![BigUint::zero(); n * n];
+        for i in 0..n {
+            for j in 0..n {
+                if i > j {
+                    l_data[i * n + j] = a[[i, j]].clone();
+                } else if i == j {
+                    l_data[i * n + j] = BigUint::one();
+                    u_data[i * n + j] = a[[i, j]].clone();
+                } else {
+                    u_data[i * n + j] = a[[i, j]].clone();
+                }
+            }
+        }
+
+        let l = Self::new(field.clone(), n, n, l_data)?;
+        let u = Self::new(field, n, n, u_data)?;
+        Ok((l, u, pivots, rank))
+    }
+
     /// Eigenvalues via the characteristic polynomial.
     pub fn eigenvalues(&self) -> Result<GaloisArray> {
         if self.shape().0 != self.shape().1 {
@@ -719,6 +789,22 @@ impl GaloisMatrix {
             Self::Big(m) => {
                 let (l, u, pivots) = m.lu_decomposition()?;
                 Ok((Self::Big(l), Self::Big(u), pivots))
+            }
+        }
+    }
+
+    /// LU decomposition for rank-deficient matrices.
+    pub fn rank_revealing_lu_decomposition(
+        &self,
+    ) -> Result<(Self, Self, Vec<usize>, usize)> {
+        match self {
+            Self::Small(m) => {
+                let (l, u, pivots, rank) = small_rank_lu(m)?;
+                Ok((Self::Small(l), Self::Small(u), pivots, rank))
+            }
+            Self::Big(m) => {
+                let (l, u, pivots, rank) = m.rank_revealing_lu_decomposition()?;
+                Ok((Self::Big(l), Self::Big(u), pivots, rank))
             }
         }
     }
@@ -903,5 +989,18 @@ mod tests {
             big_singular.lu_decomposition(),
             Err(GaloisError::SingularMatrix)
         ));
+    }
+
+    #[test]
+    fn galois_matrix_rank_revealing_lu() {
+        let fk = FieldKind::Small(GaloisField::new(5, 1).unwrap());
+        let singular = GaloisMatrix::new(&fk, 2, 2, vec![1, 2, 2, 4]).unwrap();
+        let (_l, _u, _pivots, rank) = singular.rank_revealing_lu_decomposition().unwrap();
+        assert_eq!(rank, singular.rank());
+        assert_eq!(rank, 1);
+
+        let full = GaloisMatrix::identity(&fk, 2);
+        let (_, _, _, full_rank) = full.rank_revealing_lu_decomposition().unwrap();
+        assert_eq!(full_rank, 2);
     }
 }

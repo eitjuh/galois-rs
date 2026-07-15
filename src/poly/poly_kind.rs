@@ -161,6 +161,11 @@ impl FieldPoly {
             Self::Big(p) => p.format_poly(var),
         }
     }
+
+    /// Parse from string over the given field kind.
+    pub fn from_str(s: &str, field: &FieldKind) -> Result<Self> {
+        crate::poly::parse_field_poly(s, field)
+    }
 }
 
 /// Full factorization into irreducibles for either polynomial kind.

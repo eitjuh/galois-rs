@@ -425,6 +425,20 @@ impl FieldMatrix {
         }
         lu_decomposition(self)
     }
+
+    /// LU decomposition for rank-deficient matrices.
+    pub fn rank_revealing_lu_decomposition(
+        &self,
+    ) -> Result<(Self, Self, Vec<usize>, usize)> {
+        let n = self.shape().0;
+        if n != self.shape().1 {
+            return Err(GaloisError::ShapeMismatch {
+                expected: vec![n, n],
+                actual: vec![self.shape().0, self.shape().1],
+            });
+        }
+        rank_revealing_lu(self)
+    }
 }
 
 /// Characteristic polynomial det(xI - A) of a square matrix.
@@ -519,6 +533,76 @@ pub fn lu_decomposition(matrix: &FieldMatrix) -> Result<(FieldMatrix, FieldMatri
     let l = FieldMatrix::new(field.clone(), n, n, l_data)?;
     let u = FieldMatrix::new(field, n, n, u_data)?;
     Ok((l, u, pivots))
+}
+
+/// LU decomposition that succeeds for rank-deficient matrices.
+///
+/// Returns `L`, `U`, pivot row indices, and the matrix rank.
+pub fn rank_revealing_lu(
+    matrix: &FieldMatrix,
+) -> Result<(FieldMatrix, FieldMatrix, Vec<usize>, usize)> {
+    let n = matrix.shape().0;
+    let field = matrix.field().clone();
+    let mut a = matrix.data.clone();
+    let mut pivots: Vec<usize> = (0..n).collect();
+    let mut rank = 0usize;
+
+    for k in 0..n {
+        let mut max_row = k;
+        for i in (k + 1)..n {
+            if a[[i, k]] != 0 {
+                max_row = i;
+            }
+        }
+        if a[[max_row, k]] == 0 {
+            continue;
+        }
+        if max_row != k {
+            pivots.swap(k, max_row);
+            for j in 0..n {
+                let tmp = a[[k, j]];
+                a[[k, j]] = a[[max_row, j]];
+                a[[max_row, j]] = tmp;
+            }
+        }
+
+        let pivot = a[[k, k]];
+        let inv_pivot = field.div(1, pivot)?;
+        rank += 1;
+        for i in (k + 1)..n {
+            let factor = field.mul(a[[i, k]], inv_pivot);
+            a[[i, k]] = factor;
+            for j in (k + 1)..n {
+                a[[i, j]] = field.sub(a[[i, j]], field.mul(factor, a[[k, j]]));
+            }
+        }
+    }
+
+    let mut l_data = vec![0u64; n * n];
+    let mut u_data = vec![0u64; n * n];
+    for i in 0..n {
+        for j in 0..n {
+            if i > j {
+                l_data[i * n + j] = a[[i, j]];
+            } else if i == j {
+                l_data[i * n + j] = 1;
+                u_data[i * n + j] = a[[i, j]];
+            } else {
+                u_data[i * n + j] = a[[i, j]];
+            }
+        }
+    }
+
+    let l = FieldMatrix::new(field.clone(), n, n, l_data)?;
+    let u = FieldMatrix::new(field, n, n, u_data)?;
+    Ok((l, u, pivots, rank))
+}
+
+/// LU decomposition that succeeds for rank-deficient matrices.
+pub fn rank_revealing_lu_decomposition(
+    matrix: &FieldMatrix,
+) -> Result<(FieldMatrix, FieldMatrix, Vec<usize>, usize)> {
+    rank_revealing_lu(matrix)
 }
 
 /// Vector over a Galois field.

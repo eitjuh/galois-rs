@@ -41,8 +41,8 @@ pub use lfsr::{
     berlekamp_massey, berlekamp_massey_array, FieldFlfsr, FieldGlfsr, Flfsr, Glfsr,
 };
 pub use linalg::{
-    characteristic_polynomial, lu_decomposition, BigFieldMatrix, FieldMatrix, FieldVector,
-    GaloisElementValue, GaloisMatrix,
+    characteristic_polynomial, lu_decomposition, rank_revealing_lu_decomposition, BigFieldMatrix,
+    FieldMatrix, FieldVector, GaloisElementValue, GaloisMatrix,
 };
 pub use math::binomial;
 pub use modular::{
@@ -57,7 +57,7 @@ pub use poly::{
     big_roots, big_square_free_factorization, distinct_degree_factorization,
     equal_degree_factorization, factor_prime_power, field_poly_factors, field_poly_roots,
     is_primitive, lagrange_poly, lagrange_poly_array, mod_inverse, mod_inverse_poly,
-    parse_field_poly, parse_poly, poly_factors, poly_from_roots, poly_from_roots_kind,
+    parse_big_poly, parse_field_poly, parse_poly, poly_factors, poly_from_roots, poly_from_roots_kind,
     poly_from_roots_values, poly_gcd, poly_roots, primitive_poly, square_free_factorization,
     BigPoly, FieldPoly, IntegerPoly, Poly, PrimePoly,
 };

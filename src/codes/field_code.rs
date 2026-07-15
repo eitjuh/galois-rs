@@ -167,6 +167,10 @@ impl FieldBch {
         &self.inner.field
     }
 
+    pub fn generator(&self) -> &FieldPoly {
+        &self.inner.generator
+    }
+
     pub fn n(&self) -> usize {
         self.inner.n
     }
